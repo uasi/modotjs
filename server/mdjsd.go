@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
 )
 
@@ -25,18 +26,18 @@ func getHost(path string) string {
 }
 
 func writeBody(w http.ResponseWriter, host string) {
-	written := false
+	l := 0
 
-	if b, err := ioutil.ReadFile("default.js"); err == nil {
-		w.Write(b)
-		written = true
+	l += writeFile(w, "default.js")
+
+	if matches, _ := filepath.Glob("default/*.js"); matches != nil {
+		for _, path := range matches {
+			l += writeFile(w, path)
+		}
 	}
 
 	for host != "" {
-		if b, err := ioutil.ReadFile(host + ".js"); err == nil {
-			w.Write(b)
-			written = true
-		}
+		l += writeFile(w, host+".js")
 		if sp := strings.SplitN(host, ".", 2); len(sp) == 2 {
 			host = sp[1]
 		} else {
@@ -44,9 +45,18 @@ func writeBody(w http.ResponseWriter, host string) {
 		}
 	}
 
-	if !written {
+	if l == 0 {
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+func writeFile(w http.ResponseWriter, path string) int {
+	if b, err := ioutil.ReadFile(path); err == nil && len(b) > 0 {
+		w.Write(b)
+		w.Write([]byte{'\n'})
+		return len(b) + 1
+	}
+	return 0
 }
 
 func detectOrigin(req *http.Request, host string) (origin string, ok bool) {
