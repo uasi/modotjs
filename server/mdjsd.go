@@ -61,7 +61,8 @@ func writeFile(w http.ResponseWriter, path string) int {
 
 func detectOrigin(req *http.Request, host string) (origin string, ok bool) {
 	origin = req.Header.Get("Origin")
-	ok = origin != "" && host != "" && strings.HasSuffix(origin, host)
+	ok = origin != "" && host != "" &&
+		(strings.HasSuffix(origin, "://"+host) || strings.HasSuffix(origin, "."+host))
 	return
 }
 
